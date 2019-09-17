@@ -68,3 +68,4 @@ FROM scratch
 COPY --from=build /out/sgdisk /usr/bin/sgdisk
 COPY --from=build /out/cgpt /usr/bin/cgpt
 COPY files/zboot /usr/bin/zboot
+COPY files/rootfs_util /usr/bin/rootfs_util

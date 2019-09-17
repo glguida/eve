@@ -1,0 +1,72 @@
+#!/bin/sh
+ZX="EVE"
+
+set -e
+
+usage() {
+    echo "${ZX} Root FS Utility tool."
+    echo
+    echo "Usage:"
+    echo "      $(basename "$0") uuid <IMAGE>"
+    echo "      $(basename "$0") install <IMAGE> <LABEL>"
+    echo
+    echo "Commands:"
+    echo "    uuid: static partition UUID of rootfs image IMAGE."
+    echo "    install: install rootfs image IMAGE in partition LABEL."
+    echo
+    echo "<LABEL> can be IMGA, IMGB, or any other GPT partition label."
+    echo "<IMAGE> is the path to a rootfs image."
+    echo
+    exit 1
+}
+
+getuuid() {
+    img=$1
+    out=$2
+
+    mount -o loop "$img" /mnt
+    cp /mnt/eve-rootfs-uuid "$out" || (
+	umount /mnt
+	exit 1
+    )
+    umount /mnt
+}
+
+do_uuid() {
+    if [ ! $# -eq 1 ]; then
+	usage
+    fi
+    img=$1
+    tmp=$(mktemp -t eve-rootfs-uuid.XXXXXX)
+    getuuid "$img" "$tmp"
+    cat "$tmp"
+    rm -f "$tmp"
+}
+
+do_install() {
+    if [ ! $# -eq 2 ]; then
+	usage
+    fi
+    img=$1
+    part=$2
+    dev=$(zboot partdev $2)
+    uuid=$(do_uuid "$img")
+
+    dd if=$img of=$dev bs=8M status=none
+
+    zboot set_partuuid "$part" "$uuid"
+}
+
+if [ $# -eq 0 ]; then
+    usage
+fi
+
+cmd=$1
+shift 1
+
+case $cmd in
+    uuid) do_uuid "$@" ;;
+    install) do_install "$@" ;;
+
+    *) usage ;;
+esac
