@@ -323,18 +323,11 @@ func WriteToPartition(srcFilename string, partName string) error {
 		return errors.New(errStr)
 	}
 
-	devName := GetPartitionDevname(partName)
-	if devName == "" {
-		errStr := fmt.Sprintf("null devname for partition %s", partName)
-		log.Errorf("WriteToPartition failed %s\n", errStr)
-		return errors.New(errStr)
-	}
+	log.Infof("WriteToPartition %s: %v\n", partName, srcFilename)
 
-	log.Infof("WriteToPartition %s, %s: %v\n", partName, devName, srcFilename)
-
-	ddCmd := exec.Command("dd", "if="+srcFilename, "of="+devName, "bs=8M")
+	rootfsInstallCmd := exec.Command("rootfs_util", "install", srcFilename, partName)
 	zbootMutex.Lock()
-	_, err := ddCmd.Output()
+	_, err := rootfsInstallCmd.Output()
 	zbootMutex.Unlock()
 	if err != nil {
 		errStr := fmt.Sprintf("WriteToPartition %s failed %v\n", partName, err)
