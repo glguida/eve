@@ -25,18 +25,21 @@ usage() {
     echo "${ZX} Boot Control and Administration API tool."
     echo
     echo "Usage:"
-    echo "       $(basename "$0") {partdev|partstate} <LABEL>"
+    echo "       $(basename "$0") {partdev|partstate|partuuid} <LABEL>"
     echo "       $(basename "$0") set_partstate <LABEL> <STATE>"
+    echo "       $(basename "$0") set_partuuid <LABEL> <UUID>"
     echo "       $(basename "$0") {curpart|reset}"
     echo
     echo "Commands:"
     echo "    partdev: return device of partion LABEL."
     echo "    partstate: return state of partition LABEL."
-    echo "    set_partstate: Set state of partition LABEL to STATE."
+    echo "    partuuid: return uuid of partition LABEL."
+    echo "    set_partstate: set state of partition LABEL to STATE."
+    echo "    set_partuuid: set uuid of partition LABEL."
     echo "    curpart: return label of current root partition."
     echo "    reset: reboot the machine with a certain hurry."
     echo
-    echo "<IMAGE> can be IMGA, IMG, or any other GPT partition label."
+    echo "<LABEL> can be IMGA, IMGB, or any other GPT partition label."
     echo "<STATE> can be either 'active', or 'unused', or 'updating'."
     echo "A partition can be in 'inprogress' state -- indicating either"
     echo "a current attempt at updating into it or a failure to do so"
@@ -111,6 +114,36 @@ set_partstate() {
     cgpt add -i ${pn} -A ${attr} ${rootdsk}
 }
 
+
+#
+# PARTUUID <LABEL>: get uuid from partition label
+#
+partuuid() {
+    if [ ! $# -eq 1 ]; then
+	usage
+    fi
+    pn=$(partno $1)
+    cgpt show -i ${pn} -u ${rootdsk}
+}
+
+
+#
+# SETPARTUUID <LABEL> <UUID>: return uuid from partition label
+#
+set_partuuid() {
+    if [ ! $# -eq 2 ]; then
+	usage
+    fi
+    pn=$(partno $1)
+    uuid=$2
+    # Check that no other partition has the same UUID
+    # NEVER create two partitions with the same UUID in GPT.
+    cgpt find -u $uuid ${rootdsk} && \
+	echo "Partition with ${uuid} already exists." &&
+	exit 1
+    cgpt add -i ${pn} -u ${uuid} ${rootdsk}
+}
+
 #
 # RESET: shutdown and restart
 #
@@ -135,6 +168,8 @@ case $cmd in
     partdev) partdev "$@" ;;
     partstate) partstate "$@" ;;
     set_partstate) set_partstate "$@" ;;
+    partuuid) partuuid "$@" ;;
+    set_partuuid) set_partuuid "$@" ;;
     reset) reset ;;
     
     *) usage ;;
