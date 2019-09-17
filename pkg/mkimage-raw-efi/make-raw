@@ -114,6 +114,7 @@ function do_rootfs {
     local SEC_END=`grow_part $SEC_START $ROOTFS_PART_SIZE`
     LABEL=$2
     IMG=$3
+    UUID=$4
 
     case $2 in
       IMGA) NUM_PART=$(( $PART_OFFSET + 2 ))
@@ -125,6 +126,7 @@ function do_rootfs {
 
     # Calculate partition size and add a partition
     sgdisk --new $NUM_PART:$SEC_START:$SEC_END \
+	   --partition-guid=$NUM_PART:$UUID \
            --typecode=$NUM_PART:5dfbf5f4-2848-4bac-aa5e-0d9a20b745a6 \
            --change-name=$NUM_PART:$LABEL $EXTRA_ATTR $IMGFILE
 
@@ -135,12 +137,12 @@ function do_rootfs {
 }
 
 function do_imga {
-    do_rootfs $1 IMGA $ROOTFS_IMG
+    do_rootfs $1 IMGA $ROOTFS_IMG $ROOTFS_UUID
 }
 
 function do_imgb {
     # for now we are not initializing IMGB - hence passing /dev/null
-    do_rootfs $1 IMGB /dev/null
+    do_rootfs $1 IMGB /dev/null 0
 }
 
 function do_vfat {
@@ -240,6 +242,15 @@ case "$(sgdisk -p $IMGFILE 2>/dev/null | sed -ne '/^Number/,$s/^.* //p' | tr '\0
       sgdisk -g --clear $IMGFILE 2>/dev/null
       ;;
 esac
+
+# Extract ROOTFS_UUID from rootfs Image
+rm -f /tmp/eve-rootfs-uuid
+unsquashfs -f -d /tmp "$ROOTFS_IMG" eve-rootfs-uuid || (
+    mount -o loop "$ROOTFS_IMG" /mnt
+    cp /mnt/eve-rootfs-uuid /tmp/eve-rootfs-uuid
+    umount /mnt
+)
+ROOTFS_UUID=$(cat /tmp/eve-rootfs-uuid)
 
 for p in $PARTS ; do
   eval do_$p CUR_SEC 2>/dev/null

@@ -18,7 +18,17 @@ cd /tmp/efi
 
 # now lets take care of GRUB 
 CMDLINE="$(cat boot/cmdline)"
-sed -i'' -e "/set *linuxkit_cmdline=/s#=.*\$#=$CMDLINE#" EFI/BOOT/grub.cfg
+
+# this is not a rootfs. Do not create a ROOTFS_UUID and set it to an
+# invalid value so grub will find alternative ways to boot.
+ROOTFS_UUID=invalid
+
+for file in $(ls EFI/BOOT/*.in); do
+    sed -e "s#@CMDLINE@#"$CMDLINE"#" \
+        -e "s#@ROOTFS_UUID@#"$ROOTFS_UUID"#" \
+        $file > ${file%.in}
+done
+
 cp EFI/BOOT/BOOTAA64.EFI . >/dev/null 2>&1 || cp EFI/BOOT/BOOTX64.EFI .
 
 # create a ISO with a EFI boot partition

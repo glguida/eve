@@ -31,8 +31,13 @@ IMGFILE=/rootfs.img
   # yml image is here.
   #
   CMDLINE="$(cat boot/cmdline)"
-  
-  sed -i'' -e "/set *linuxkit_cmdline=/s#=.*\$#=$CMDLINE#" EFI/BOOT/grub.cfg
+
+  for file in $(ls EFI/BOOT/*.in); do
+      sed -e "s#@CMDLINE@#"$CMDLINE"#" \
+          -e "s#@ROOTFS_UUID@#"$ROOTFS_UUID"#" \
+          $file > ${file%.in}
+  done
+  echo $ROOTFS_UUID > eve-rootfs-uuid
 
   ROOTFS_BLOCKSZ=4096
   ROOTFS_PART_HEADROOM_BLOCKS=16000

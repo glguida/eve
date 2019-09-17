@@ -2,7 +2,7 @@ set timeout=5
 set gfxpayload=text
 set default=0
 
-set linuxkit_cmdline=
+set linuxkit_cmdline=@CMDLINE@
 set grub_virt=
 set rootfs_root=
 set rootfs_title=EVE
@@ -44,12 +44,9 @@ function set_rootfs_root {
      fi
    else
      # we really prefer to get the ID from the parition, but
-     # we have to be careful since probe is known to coredump
-     # if run on targets without partition table. And sometimes... 
-     if regexp "," "$prefix" ; then
-       probe --set partuuid -U $root
-     fi
-     # ...if that's not available, there's a few fallbacks
+     # we might run on targets without partition table.
+     set partuuid=@ROOTFS_UUID@
+     # If that's not available, there are a few fallbacks:
      if regexp '[0-9a-fA-F-]' "$partuuid" ; then
        set rootfs_root=PARTUUID=$partuuid
      elif regexp '^hd0$' "$root" ; then
